@@ -4,9 +4,32 @@ from msal import ConfidentialClientApplication
 import json
 
 class BusinessCentralAPIClient(requests.Session):
+    """
+    A class  that inherits from requests.Session class for interacting with Dynamics 365 Business Central API.
+    
+    This class is intended to provide methods for common operations on Business Central tables and handles OAuth2.0 Authentication.
 
-    CUSTOMER_TABLE = 'SQLCustomer'
-    PRODUCT_TABLE = 'SQLProduct'
+    Attributes:
+
+        tenant_id (str) : Azure tenant ID.
+        environment (str) : name of the Business Central Environment.
+        company (str) : name of the company within the environment.
+        client_id (str) : the client id of your registered Azure App.
+        client_secret (str) : the client secret of your registered Azure App.
+        scopes (list) : API scopes, set by default to business central API scopes but other Microsoft REST APIS are allowed.
+        base_url (str) : the base URL of the Business Central API.
+        authority (str) : the authority URL required to obtain oauth token.
+        access_token (str) : OAuth2.0 access token for the client, automatically retrieved when an object is initialized.
+        token_type (str) : token type, automatically retrieved when an object is initialized.
+        headers (dict) : the base headers for every request to the Business Central API.
+        CUSTOMER_TABLE_ENDPOINT (str) : name of the custom API page entity which exposes data from Customer Table (ID 18)
+            Reference to Microsoft Documentation: https://learn.microsoft.com/en-us/dynamics365/business-central/application/base-application/table/microsoft.sales.customer.customer
+        PRODUCT_TABLE_ENDPOINT (str) : name of the custom API page entity which exposes data from Item Table (ID 27)
+            Reference to Microsoft Documentation: https://learn.microsoft.com/en-us/dynamics365/business-central/application/base-application/table/microsoft.inventory.item.item
+    """
+
+    CUSTOMER_TABLE_ENDPOINT = 'SQLCustomer'
+    PRODUCT_TABLE_ENDPOINT = 'SQLProduct'
 
     def __init__(self, 
                  tenant_id, 
@@ -174,13 +197,13 @@ class BusinessCentralAPIClient(requests.Session):
 
         self.create_parameters(createdAt,modifiedAt,orderBy,select,offset,limit,filterExpression)
 
-        return self.request(url=self.CUSTOMER_TABLE,method='GET',params=self.params)
+        return self.request(url=self.CUSTOMER_TABLE_ENDPOINT,method='GET',params=self.params)
     
     def get_products(self,createdAt=None,modifiedAt=None,orderBy=None,select=None,offset=None,limit=None,filterExpression=None):
 
         self.create_parameters(createdAt,modifiedAt,orderBy,select,offset,limit,filterExpression)
 
-        return self.request(url=self.PRODUCT_TABLE,method='GET',params=self.params)
+        return self.request(url=self.PRODUCT_TABLE_ENDPOINT,method='GET',params=self.params)
     
     def get_customer(self,customer_id):
 
