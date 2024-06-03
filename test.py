@@ -3,7 +3,6 @@ from os import getenv
 from src.business_central_api_client import BusinessCentralAPIClient
 from rich import print
 
-
 load_dotenv('/.env')
 
 APIClient = BusinessCentralAPIClient(
@@ -16,5 +15,7 @@ APIClient = BusinessCentralAPIClient(
 
 )
 
+if __name__ == '__main__':
 
-customers = APIClient.get_customers()
+    producto = APIClient.get_product('060.166.0574')
+    print(producto)

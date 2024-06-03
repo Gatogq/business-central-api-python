@@ -16,7 +16,7 @@ class BusinessCentralAPIClient(requests.Session):
         company (str) : name of the company within the environment.
         client_id (str) : the client id of your registered Azure App.
         client_secret (str) : the client secret of your registered Azure App.
-        scopes (list) : API scopes, set by default to business central API scopes but other Microsoft REST APIS are allowed.
+        scopes (list) : API scopes, set by default to business central API scopes but including other Microsoft REST APIS are allowed.
         base_url (str) : the base URL of the Business Central API.
         authority (str) : the authority URL required to obtain oauth token.
         access_token (str) : OAuth2.0 access token for the client, automatically retrieved when an object is initialized.
@@ -39,6 +39,16 @@ class BusinessCentralAPIClient(requests.Session):
                  client_secret,
                  scopes=['https://api.businesscentral.dynamics.com/.default']
                  ):
+        """
+        Initializes the API Client with the necessary credentials and base URL.
+
+        Args:
+            tenant_id (str): Azure tenant ID.
+            environment (str): Name of the Business Central Environment.
+            company (str): Name of the company within the environment.
+            client_id (str): The client ID of your registered Azure App.
+            client_secret (str): The client secret of your registered Azure App.
+        """
         super().__init__()
 
         self.tenant_id = tenant_id
@@ -62,6 +72,14 @@ class BusinessCentralAPIClient(requests.Session):
 
     def get_oauth_token(self):
 
+
+        """
+        Obtains an OAuth2.0 access token from Azure AD using msal library ConfidentialClientApplication class, as recommended by Microsoft.
+
+        This method handles the OAuth2.0 authentication process and retrieves an access token
+        required for making the API requests.
+        """
+
         auth_client = ConfidentialClientApplication(
         client_id=self.client_id,
         client_credential=self.client_secret,
@@ -84,10 +102,19 @@ class BusinessCentralAPIClient(requests.Session):
         
     def refresh_oauth_token(self):
 
+        """
+        Obtains a new OAuth2.0 access token once the current session token expired.
+        """
+
         self.get_oauth_token()
 
     
     def request(self, url, method, params=None):
+
+        """
+        Extended version of request method from request.Session class, modified to handle automatic OAuth2.0 token refresh and
+        pagination for 'GET' requests using @OData.nextLink annotation as per OData standard.
+        """
 
         endpoint = urllib.parse.urljoin(self.base_url,url)
 
@@ -120,7 +147,21 @@ class BusinessCentralAPIClient(requests.Session):
         return response.json()
     
     def create_parameters(self,createdAt,modifiedAt,orderBy,select,offset,limit,filterExpression):
+        """
+        Constructs the parameters dictionary of the specific request, 
+        using OData standard query options such as $filter, $select, $orderby, $top and $skip.
 
+        Args:
+            createdAt (datetime): The value to filter records created after a specific timestamp. 
+            (it is required that systemCreatedAt field is included on the API page to use this parameter).
+            modifiedAt (datetime): The value to filter records modified after a specific timestamp.
+            (it is required that systemModifiedAt field is included on the API page to use this parameter).
+            orderBy (str): The field of the API response to order by.
+            select (str): The fields to include in the API response.
+            offset (int): The number of records to skip in the API response.
+            limit (int): The maximum number of records to return in the API response.
+            filterExpression (str): A custom filter expression to apply to the request.
+        """
         self.params = {}
 
         if createdAt:
@@ -195,23 +236,79 @@ class BusinessCentralAPIClient(requests.Session):
     
     def get_customers(self,createdAt=None,modifiedAt=None,orderBy=None,select=None,offset=None,limit=None,filterExpression=None):
 
+        """get a list of customers for the specific company.
+            
+            Args:
+            createdAt (datetime): retrieve records created after a specific timestamp. (optional)
+            (it is required that systemCreatedAt field is included on the API page to use this parameter).
+            modifiedAt (datetime): retrieve records modified after a specific timestamp (optional)
+            (it is required that systemModifiedAt field is included on the API page to use this parameter).
+            orderBy (str): order results by a specific field (optional)
+            select (str): specify the fields to include on the api response (optional)
+            offset (int): the number of records to skip in the API response. (optional)
+            limit (int): the maximum number of records to return in the API response. (optional)
+            filterExpression (str): a custom filter expression to apply to the request. (optional)
+
+            Returns:
+            A list of customers from the Customer Table Entity in json format. 
+        """
+
         self.create_parameters(createdAt,modifiedAt,orderBy,select,offset,limit,filterExpression)
 
         return self.request(url=self.CUSTOMER_TABLE_ENDPOINT,method='GET',params=self.params)
     
     def get_products(self,createdAt=None,modifiedAt=None,orderBy=None,select=None,offset=None,limit=None,filterExpression=None):
+            
+        """get a list of products for the specific company.
+            
+            Args:
+            createdAt (datetime): retrieve records created after a specific timestamp. (optional)
+            (it is required that systemCreatedAt field is included on the API page to use this parameter).
+            modifiedAt (datetime): retrieve records modified after a specific timestamp (optional)
+            (it is required that systemModifiedAt field is included on the API page to use this parameter).
+            orderBy (str): order results by a specific field (optional)
+            select (str): specify the fields to include on the api response (optional)
+            offset (int): the number of records to skip in the API response. (optional)
+            limit (int): the maximum number of records to return in the API response. (optional)
+            filterExpression (str): a custom filter expression to apply to the request. (optional)
+
+            Returns:
+            A list of products  on the Item Table Entity in json format. 
+        """
 
         self.create_parameters(createdAt,modifiedAt,orderBy,select,offset,limit,filterExpression)
 
         return self.request(url=self.PRODUCT_TABLE_ENDPOINT,method='GET',params=self.params)
     
-    def get_customer(self,customer_id):
+    def get_customer(self,customerId):
 
-        return self.get_customers(filterExpression=f"no eq '{customer_id}'")
+        """get information about a specific customer.
+            
+            Args:
+            customerId (str): the unique identifier for the specific customer, it is found on the 'no' field of the API Page. (required)
+
+            Returns:
+
+            A single record representing the information for the specific customer in json format.
+        
+        """
+
+        return self.get_customers(filterExpression=f"no eq '{customerId}'")
     
-    def get_product(self,product_id):
+    def get_product(self,productId):
 
-        return self.get_products(filterExpression=f"no eq '{product_id}'")
+        """get information about a specific product.
+            
+            Args:
+            productId (str): the unique identifier for the specific product, it is found on the 'no' field of the API Page. (required)
+
+            Returns:
+
+            A single record representing the information for the specific product in json format.
+        
+        """
+
+        return self.get_products(filterExpression=f"no eq '{productId}'")
 
     
 
